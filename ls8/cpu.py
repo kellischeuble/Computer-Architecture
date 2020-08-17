@@ -2,12 +2,33 @@
 
 import sys
 
+LDI = 0b10000010
+PRN = 0b01000111
+HLT = 0b00000001
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.running = True
+        self.memory = [0] * 256
+        self.registers = [0] * 8
+        self.stack_pointer = 0
+
+    def ram_read(self, MAR):
+        """
+        address: address to read
+        returns value stored at that slot in memory
+        """
+        return self.memory[MAR]
+
+    def ram_write(self, MDR, MAR):
+        """
+        value: value to write
+        address: adress to write value to
+        """
+        self.memory[MAR] = MDR
 
     def load(self):
         """Load a program into memory."""
@@ -62,4 +83,19 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        while self.running:
+            IR = self.ram_read(self.pc)
+            opperand_a = self.ram_read(self.pc + 1)
+            opperand_b = self.ram_read(self.pc + 2)
+
+        if IR == HLT:
+            self.running = False
+        elif IR == LDI:
+            self.registers[opperand_a] = opperand_b
+            self.stack_pointer += 3
+        elif IR == PRN:
+            print(self.registers[opperand_a])
+            self.stack_pointer += 2
+        else:
+            print(f"Uknown instruction {IR} at address {self.stack_pointer}")
+            # exit
