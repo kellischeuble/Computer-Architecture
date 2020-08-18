@@ -2,10 +2,6 @@
 
 import sys
 
-LDI = 0b10000010
-PRN = 0b01000111
-HLT = 0b00000001
-
 class CPU:
     """Main CPU class."""
 
@@ -33,30 +29,22 @@ class CPU:
     def load(self):
         """Load a program into memory."""
 
-        address = 0
+        filename = sys.argv[1]
 
-        # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
-
+        with open(filename) as f:
+            for address, line in enumerate(f):
+                line = line.split("#")
+                try:
+                    v = int(line[0], 2)
+                except ValueError:
+                    continue
+                self.memory[address] = v
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
         if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
+            self.registers[reg_a] += self.registers[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -68,34 +56,45 @@ class CPU:
         """
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
-            self.pc,
+            self.stack_pointer,
             #self.fl,
             #self.ie,
-            self.ram_read(self.pc),
-            self.ram_read(self.pc + 1),
-            self.ram_read(self.pc + 2)
+            self.ram_read(self.stack_pointer),
+            self.ram_read(self.stack_pointer + 1),
+            self.ram_read(self.stack_pointer + 2)
         ), end='')
 
         for i in range(8):
-            print(" %02X" % self.reg[i], end='')
+            print(" %02X" % self.registers[i], end='')
 
         print()
 
     def run(self):
         """Run the CPU."""
-        while self.running:
-            IR = self.ram_read(self.pc)
-            opperand_a = self.ram_read(self.pc + 1)
-            opperand_b = self.ram_read(self.pc + 2)
 
-        if IR == HLT:
-            self.running = False
-        elif IR == LDI:
-            self.registers[opperand_a] = opperand_b
-            self.stack_pointer += 3
-        elif IR == PRN:
-            print(self.registers[opperand_a])
-            self.stack_pointer += 2
-        else:
-            print(f"Uknown instruction {IR} at address {self.stack_pointer}")
-            # exit
+        LDI = 0b10000010
+        PRN = 0b01000111
+        HLT = 0b00000001
+        MUL = 0b10100010
+
+        while self.running:
+            # self.trace()
+            IR = self.ram_read(self.stack_pointer)
+            opperand_a = self.ram_read(self.stack_pointer + 1)
+            opperand_b = self.ram_read(self.stack_pointer + 2)
+
+            if IR == HLT:
+                self.running = False
+            elif IR == LDI:
+                self.registers[opperand_a] = opperand_b
+                self.stack_pointer += 3
+            elif IR == PRN:
+                print(self.registers[opperand_a])
+                self.stack_pointer += 2
+            elif IR == MUL:
+                product = self.registers[opperand_a] * self.registers[opperand_b]
+                print(int(product))
+                self.stack_pointer += 3
+            else:
+                print(f"Uknown instruction {IR} at address {self.stack_pointer}")
+                self.stack_pointer += 1
